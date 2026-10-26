@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ledgerly MCA Assistant</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 4v16h11M7 12h8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <div>
+        <div class="logo-title">Ledgerly</div>
+        <div class="logo-sub">MCA WORKSPACE</div>
+      </div>
+    </div>
+    <span class="header-version">ASSISTANT</span>
+  </header>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-row">
+      <span class="dot" id="connDot"></span>
+      <span id="connLabel">Checking connection…</span>
+    </div>
+    <div class="status-row" id="pageRow" style="display:none">
+      <span class="dot dot-page" id="pageDot"></span>
+      <span id="pageLabel">—</span>
+    </div>
+  </div>
+
+  <!-- Auth panel -->
+  <section class="panel" id="authPanel">
+    <p class="hint">Sign in to Ledgerly in your browser, then connect the extension.</p>
+    <button class="btn btn-primary" id="btnConnect">Connect to Ledgerly</button>
+    <div class="error-msg" id="authError"></div>
+  </section>
+
+  <!-- Main panel -->
+  <section class="panel" id="mainPanel" style="display:none">
+
+    <!-- Client identity bar (shown when a draft is loaded) -->
+    <div class="client-identity-bar" id="clientIdentityBar" style="display:none">
+      <div class="cib-avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.5-3.4 2.8-5.2 6.5-5.2s6 1.8 6.5 5.2"/></svg>
+      </div>
+      <div class="cib-info">
+        <div class="cib-name" id="cibClientName">—</div>
+        <div class="cib-meta"><span class="cib-id" id="cibClientId">—</span> · <span class="cib-cat" id="cibCategory">—</span></div>
+      </div>
+      <div class="cib-badge" id="cibBadge">New Company</div>
+    </div>
+
+    <!-- Form-type tabs -->
+    <div class="form-tabs" id="formTabs">
+      <button class="tab-btn tab-active" id="tabPartA" data-tab="partA">SPICe+ Part A</button>
+      <button class="tab-btn" id="tabNewCo" data-tab="newCo">New Company Reg</button>
+    </div>
+
+    <!-- ══════════════════════════ SPICe+ Part A Tab ══════════════════════════ -->
+    <div id="tabPanelPartA">
+      <div class="dashboard-heading">
+        <div><div class="eyebrow">WORKSPACE</div><h1>Form dashboard</h1></div>
+        <span class="secure-badge"><span class="secure-dot"></span> Secure session</span>
+      </div>
+      <div class="workflow-card">
+        <div class="workflow-path"><span>SPICe+</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg><span>Part A</span></div>
+        <h2>Reserve a name for a new company</h2>
+        <p>Name reservation for company incorporation</p>
+      </div>
+
+      <!-- User info -->
+      <div class="user-row" id="userRow">
+        <span class="user-identity"><span class="user-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.5-3.4 2.8-5.2 6.5-5.2s6 1.8 6.5 5.2"/></svg></span><span id="userName"></span></span>
+        <button class="btn-link" id="btnDisconnect">Disconnect</button>
+      </div>
+
+      <!-- Draft selector -->
+      <div class="field-group">
+        <label class="field-label" for="draftSelect">Select client draft</label>
+        <select class="select" id="draftSelect">
+          <option value="">— Select a draft —</option>
+        </select>
+      </div>
+      <div class="sample-card">
+        <div class="sample-copy"><span class="sample-tag">LOCAL TEST</span><strong>Try a sample draft</strong><small>Sample data works only on the local demo form.</small></div>
+        <button class="btn btn-secondary sample-button" id="btnSampleDraft" type="button" disabled>Load sample</button>
+      </div>
+
+      <!-- Draft info card -->
+      <div class="draft-card" id="draftCard" style="display:none">
+        <div class="draft-row"><span class="draft-meta">Client</span><span id="draftClient"></span></div>
+        <div class="draft-row"><span class="draft-meta">Type</span><span id="draftType"></span></div>
+        <div class="draft-row"><span class="draft-meta">Name</span><span id="draftName"></span></div>
+        <div class="draft-row"><span class="draft-meta">Verdict</span><span id="draftVerdict" class="verdict-badge"></span></div>
+        <div class="draft-row"><span class="draft-meta">Availability</span><span id="draftAvailability" class="avail-note">Name availability not verified</span></div>
+      </div>
+
+      <!-- Validation issues -->
+      <div id="validationPanel" style="display:none">
+        <div class="section-label">Validation issues</div>
+        <ul class="issue-list" id="issueList"></ul>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="tools-heading"><span>FORM ACTIONS</span><span class="tools-rule"></span></div>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="btnFill" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v6h8V4M8 20v-6h8v6"/></svg>Fill form</button>
+        <button class="btn btn-secondary" id="btnValidate" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.5 11 15l5-6M12 3l8 3v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6z"/></svg>Validate</button>
+      </div>
+      <div class="action-bar-2">
+        <button class="btn btn-ghost" id="btnRefresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 9a7 7 0 0 1 12-2l2 2M4 15l2 2a7 7 0 0 0 12-2"/></svg>Refresh drafts</button>
+        <button class="btn btn-ghost" id="btnClear" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Clear form</button>
+      </div>
+      <div class="action-bar-2">
+        <button class="btn btn-ghost" id="btnScan"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m16 16 4 4M8 11h5M10.5 8.5v5"/></svg>Scan fields</button>
+        <button class="btn btn-ghost" id="btnTest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 5 13h6l-1 9 9-12h-6z"/></svg>Test fill</button>
+      </div>
+      <div class="fill-safety-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Fills fields only. The extension never submits the form.</span></div>
+
+      <!-- Scan results panel -->
+      <div id="scanPanel" style="display:none">
+        <div class="section-label">Page form fields <span id="scanCount" style="color:#999;font-weight:400"></span></div>
+        <div class="scan-url" id="scanUrl"></div>
+        <div class="scan-list-wrap">
+          <table class="scan-table" id="scanTable">
+            <thead><tr><th>Label / Name</th><th>tag</th><th>name attr</th><th>id attr</th></tr></thead>
+            <tbody id="scanBody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-ghost" id="btnCopyScan" style="margin-top:6px;width:100%"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>Copy scan data</button>
+      </div>
+
+      <!-- Result log -->
+      <div id="resultPanel" style="display:none">
+        <div class="section-label">Field results</div>
+        <div class="result-summary" id="resultSummary"></div>
+        <ul class="result-list" id="resultList"></ul>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ New Company Registration Tab ══════════════════════════ -->
+    <div id="tabPanelNewCo" style="display:none">
+      <div class="dashboard-heading">
+        <div><div class="eyebrow">INC-32 / SPICe+</div><h1>New Company Reg</h1></div>
+        <span class="secure-badge"><span class="secure-dot"></span> Secure session</span>
+      </div>
+
+      <!-- Category badge row -->
+      <div class="category-banner">
+        <span class="cat-icon">🏢</span>
+        <div class="cat-info">
+          <div class="cat-label">SPECTRACE CATEGORY</div>
+          <div class="cat-value">New Company Registration</div>
+        </div>
+        <span class="cat-count" id="ncoDraftCount">0 pending</span>
+      </div>
+
+      <!-- Draft selector for new company -->
+      <div class="field-group">
+        <label class="field-label" for="ncoDraftSelect">Select client</label>
+        <select class="select" id="ncoDraftSelect">
+          <option value="">— Select a client draft —</option>
+        </select>
+      </div>
+
+      <!-- Categorized field display -->
+      <div id="ncoCategoryList" style="display:none">
+        <!-- Categories rendered by JS -->
+      </div>
+
+      <!-- Fill actions -->
+      <div class="tools-heading"><span>FORM ACTIONS</span><span class="tools-rule"></span></div>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="ncoBtnFill" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v6h8V4M8 20v-6h8v6"/></svg>Fill All Fields
+        </button>
+        <button class="btn btn-secondary" id="ncoBtnValidate" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.5 11 15l5-6M12 3l8 3v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6z"/></svg>Validate
+        </button>
+      </div>
+      <div class="action-bar-2" style="margin-top:0">
+        <button class="btn btn-ghost" id="ncoBtnRefresh">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 9a7 7 0 0 1 12-2l2 2M4 15l2 2a7 7 0 0 0 12-2"/></svg>Refresh
+        </button>
+        <button class="btn btn-ghost" id="ncoBtnClear" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Clear
+        </button>
+      </div>
+
+      <!-- Result log for new company -->
+      <div id="ncoResultPanel" style="display:none">
+        <div class="section-label">Fill results</div>
+        <div class="result-summary" id="ncoResultSummary"></div>
+        <ul class="result-list" id="ncoResultList"></ul>
+      </div>
+
+      <div class="fill-safety-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Fills fields only. The extension never submits the form.</span></div>
+    </div>
+
+  </section>
+
+  <!-- Global spinner -->
+  <div class="spinner-overlay" id="spinner" style="display:none">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Global error banner -->
+  <div class="error-banner" id="errorBanner" style="display:none"></div>
+
+  <!-- Confirmation dialog -->
+  <div class="dialog-overlay" id="clearDialog" style="display:none">
+    <div class="dialog">
+      <p>Clear all filled form fields?</p>
+      <div class="dialog-btns">
+        <button class="btn btn-danger" id="btnClearConfirm">Yes, clear</button>
+        <button class="btn btn-ghost" id="btnClearCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
+  <script src="api.js"></script>
+  <script src="field-map.js"></script>
+  <script src="field-map-inc32.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
